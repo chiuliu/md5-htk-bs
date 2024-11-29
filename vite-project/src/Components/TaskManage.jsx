@@ -1,4 +1,3 @@
-// export default TaskManager;
 import React from "react";
 import { FaCheck, FaTrashAlt, FaEdit } from "react-icons/fa";
 import EditTask from "./EditTask.jsx"; // Import component EditTask
@@ -12,25 +11,41 @@ class TaskManager extends React.Component {
       startTime: "",
       deadlineTime: "",
       activeTab: "ongoing",
-      editingTask: null, // Thêm state để lưu công việc đang được chỉnh sửa
+      editingTask: null,
+      nextId: this.getNextId(), // ID tự tăng cho công việc mới
     };
   }
 
+  // Hàm để lấy ID tiếp theo từ localStorage
+  getNextId() {
+    const tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+    return tasks.length > 0 ? Math.max(...tasks.map((task) => task.id)) + 1 : 1;
+  }
+
+  // Hàm thêm công việc mới
   addTask = () => {
-    const { title, startTime, deadlineTime, tasks } = this.state;
+    const { title, startTime, deadlineTime, tasks, nextId } = this.state;
     const now = new Date();
     const start = new Date(startTime);
     const deadline = new Date(deadlineTime);
 
+    // Validate
     if (!title || start < now || deadline <= start) {
       alert("Thông tin không hợp lệ!");
       return;
     }
 
-    const newTask = { title, startTime, deadlineTime, isDone: false };
+    // Tạo công việc mới với ID tự tăng
+    const newTask = {
+      id: nextId,
+      title,
+      startTime,
+      deadlineTime,
+      isDone: false,
+    };
     const updatedTasks = [...tasks, newTask];
 
-    this.setState({ tasks: updatedTasks });
+    this.setState({ tasks: updatedTasks, nextId: nextId + 1 }); // Cập nhật ID tiếp theo
     localStorage.setItem("tasks", JSON.stringify(updatedTasks));
     this.clearInputs();
   };
@@ -39,22 +54,25 @@ class TaskManager extends React.Component {
     this.setState({ title: "", startTime: "", deadlineTime: "" });
   };
 
-  completeTask = (index) => {
+  // Hoàn thành công việc
+  completeTask = (id) => {
     const { tasks } = this.state;
-    const updatedTasks = tasks.map((task, idx) =>
-      idx === index ? { ...task, isDone: true } : task
+    const updatedTasks = tasks.map((task) =>
+      task.id === id ? { ...task, isDone: true } : task
     );
     this.setState({ tasks: updatedTasks });
     localStorage.setItem("tasks", JSON.stringify(updatedTasks));
   };
 
-  deleteTask = (index) => {
+  // Xóa công việc theo ID
+  deleteTask = (id) => {
     const { tasks } = this.state;
-    const updatedTasks = tasks.filter((_, idx) => idx !== index);
+    const updatedTasks = tasks.filter((task) => task.id !== id);
     this.setState({ tasks: updatedTasks });
     localStorage.setItem("tasks", JSON.stringify(updatedTasks));
   };
 
+  // Chỉnh sửa công việc
   startEditing = (task) => {
     this.setState({ editingTask: task });
   };
@@ -62,7 +80,7 @@ class TaskManager extends React.Component {
   saveTask = (updatedTask) => {
     const { tasks } = this.state;
     const updatedTasks = tasks.map((task) =>
-      task.title === updatedTask.title ? updatedTask : task
+      task.id === updatedTask.id ? updatedTask : task
     );
     this.setState({ tasks: updatedTasks, editingTask: null });
     localStorage.setItem("tasks", JSON.stringify(updatedTasks));
@@ -72,13 +90,14 @@ class TaskManager extends React.Component {
     this.setState({ editingTask: null });
   };
 
+  // Render danh sách công việc
   renderTasks = () => {
     const { tasks, activeTab } = this.state;
     return tasks
       .filter((task) => (activeTab === "ongoing" ? !task.isDone : task.isDone))
-      .map((task, index) => (
+      .map((task) => (
         <li
-          key={index}
+          key={task.id} // Sử dụng ID làm key
           className={`flex justify-between items-center p-4 mb-2 rounded-lg ${
             new Date(task.deadlineTime) - new Date() < 12 * 60 * 60 * 1000
               ? "bg-red-300"
@@ -98,19 +117,19 @@ class TaskManager extends React.Component {
           </div>
           <div className="flex">
             <button
-              onClick={() => this.completeTask(index)}
+              onClick={() => this.completeTask(task.id)} // Hoàn thành công việc theo ID
               className="text-green-600 hover:text-green-800"
             >
               <FaCheck />
             </button>
             <button
-              onClick={() => this.startEditing(task)}
+              onClick={() => this.startEditing(task)} // Bắt đầu chỉnh sửa công việc
               className="text-blue-600 hover:text-blue-800 ml-2"
             >
               <FaEdit />
             </button>
             <button
-              onClick={() => this.deleteTask(index)}
+              onClick={() => this.deleteTask(task.id)} // Xóa công việc theo ID
               className="text-red-600 hover:text-red-800 ml-2"
             >
               <FaTrashAlt />
@@ -201,4 +220,4 @@ class TaskManager extends React.Component {
   }
 }
 
-export default TaskManager;
+export default TaskManager; // Xuất component TaskManager
